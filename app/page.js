@@ -1,6 +1,7 @@
 import Image from "next/image";
 import styles from "./page.module.css";
 import MoneyTracer from "./components/MoneyTracer";
+import TripCalculator from "./components/TripCalculator";
 
 export default function Home() {
   return (
@@ -10,6 +11,15 @@ export default function Home() {
       </div>
 
       <MoneyTracer />
+      <TripCalculator />
+
+      {/* limit accepted file types = accept="image/*" */}
+      {/* accpet=".pdf, .doc, .xlsx" */}
+      {/* capture="camera" */}
+      {/* <form method="post" encType="multipart/form-data" action="https://imagekit.io/does-not-exists"> */}
+        {/* <input type="file" name="file" /> */}
+        {/* <button>Upload</button> */}
+      {/* </form> */}
 
       <div className={styles.grid}>
         <a
