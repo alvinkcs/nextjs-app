@@ -2,12 +2,14 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import MoneyTracer from "./components/MoneyTracer";
 import TripCalculator from "./components/TripCalculator";
+import Link from 'next/link'
 
 export default function Home() {
   return (
     <main className={styles.main}>
       <div className={styles.description}>
         <p>Time to deploy this shit</p>
+        <Link href="/blog">blog</Link>
       </div>
 
       <MoneyTracer />
