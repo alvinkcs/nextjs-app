@@ -1,5 +1,5 @@
-// pages/api/test.js
-import clientPromise from '../../lib/mongodb';
+// pages/api/money-record.js
+import {clientPromise, ObjectId} from '../../lib/mongodb';
 
 export default async function handler(req, res) {
 //   try {
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
             const db = client.db('MyPage'); // Replace with your database name
 
             // Example: Query a collection
-            const data = await db.collection('YtUrls').find({}).limit(10).toArray();
+            const data = await db.collection('moneyRecord').find({}).limit(10).toArray();
 
             res.status(200).json({ success: true, data });
         } catch (error) {
@@ -35,10 +35,23 @@ export default async function handler(req, res) {
             const client = await clientPromise;
             const db = client.db('MyPage'); // Replace with your database name
 
-            const newData = await db.collection('YtUrls').insertOne(JSON.parse(req.body));
+            const newData = await db.collection('moneyRecord').insertOne(JSON.parse(req.body));
 
             res.status(201).json(newData);
-            // res.status(200).json({message: 'Data received', receivedData: req.body});
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ success: false, error: 'Server error' });
+        }
+        break;
+    case 'DELETE':
+        try {
+            const client = await clientPromise;
+            const db = client.db('MyPage'); // Replace with your database name
+
+            const deleteData = await db.collection('moneyRecord').deleteOne({_id: new ObjectId(req.body)});
+            console.log(req.body);
+
+            res.status(201).json(deleteData);
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, error: 'Server error' });

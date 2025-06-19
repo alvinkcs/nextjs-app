@@ -33,7 +33,7 @@ function TripCalculator_c(){
         <p>case1: A pays for all, case2: A B pay for all, case3: A only pay for B</p>
         <p>Payment history:</p>
         {paymentHistory.map(history => {
-            return <p>{history.payer} {history.method} by {history.value}</p>
+            return <p key={history.payer}>{history.payer} {history.method} by {history.value}</p>
         })}
 
         <input onChange={handleMoneyChange} type="text" name="money" value={money}/>
