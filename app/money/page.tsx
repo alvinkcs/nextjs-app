@@ -10,7 +10,7 @@ export default async function Page() {
         method: 'GET',
     });
     const {data = []} = await response.json();
-    log(data)
+    // log(data)
 
     const handleData = (componentData) => {
         log("Data from component: ", componentData);

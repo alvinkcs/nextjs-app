@@ -29,13 +29,13 @@ export default async function Page() {
     };
 
     const backButtonStyle = {
-    display:'absolute',
-    // backgroundColor: "red"
+        margin: '10px 10px',
     }
 
     return <div style={backgroundStyle}>
-        <div>
+        <div style={{display: 'flex'}}>
             <Link style={backButtonStyle} href="/">Back</Link>
+            <Link style={backButtonStyle} href="/blog/123">123</Link>
         </div>
         <div style={{justifyContent:'center', alignItems:'center', height: '100vh', display: 'flex'}}>
             {/* {data.map(item => (
@@ -43,7 +43,7 @@ export default async function Page() {
                     <p>{item.url}</p>
                 </div>
             ))} */}
-            <div style={{backgroundColor: 'grey', display: 'block', width: '100rem', height: 'auto'}}>
+            <div style={{display: 'block', width: '90vw', height: 'auto', borderRadius: '15px'}}>
                 <YoutubeMusicHandler />
                 <iframe width="100%" height="auto" src={link} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
             </div>

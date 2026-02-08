@@ -12,7 +12,7 @@ function CamScreen() {
         useEffect(() => {
             const enableVideoStream = async () => {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: true});
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: {facingMode: 'user'} }); // user(front) / environment(back)
                     setMediaStream(stream);
                 } catch (error) {
                     console.log('Error accessing cam', error);
@@ -40,7 +40,7 @@ function CamScreen() {
 
         return (
             <div>
-                <video ref={videoRef} autoPlay={true} />
+                <video style={{transform: "scaleX(-1)"}} ref={videoRef} autoPlay={true} />
             </div>
         )
     }

@@ -44,7 +44,7 @@ function YoutubeMusicHandler() {
         }
     }
 
-    return <div>
+    return <div style={{backgroundColor: 'black', opacity: '0.8', borderRadius: '15px'}}>
         <h3>Add New Youtube Video</h3>
         <form onSubmit={handleClick}>
             <input onChange={handleInputChange} className="input" type="text" name="value" id="" value={newSong} />

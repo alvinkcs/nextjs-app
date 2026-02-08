@@ -22,6 +22,8 @@ export default function Home() {
         {/* <button>Upload</button> */}
       {/* </form> */}
 
+      <iframe id="inlineFrameExample" title="Inline Frame Example" width="300" height="200" src="https://www.openstreetmap.org/export/embed.html?bbox=114.21554088592531%2C22.27827535417046%2C114.22669887542726%2C22.28565163858647&amp;layer=mapnik"></iframe>
+
       <div className={styles.grid}>
         <a
           href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
