@@ -2,7 +2,8 @@ import KVCacheVisualization from "../components/KVCacheVisualization"
 import TradeView from "../components/TradeView"
 
 export default async function Page() {
-    const response = await fetch('http://localhost:3000/api/yt', {
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/yt`, {
         cache: 'no-store', // Disable caching for fresh data
         method: 'GET',
     });

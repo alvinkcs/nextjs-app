@@ -27,7 +27,7 @@ function MoneyRecord(props) {
     async function handleData(event) {
         const today = new Date();
         const formattedDate = today.toLocaleDateString();
-        const response = await fetch('http://localhost:3000/api/money-record', {
+        const response = await fetch('/api/money-record', {
             method: 'POST',
             body: JSON.stringify({
                 date:formattedDate,
@@ -59,7 +59,7 @@ function MoneyRecord(props) {
 
     async function handleDelete(event) {
         const {name} = event.target;
-        const response = await fetch('http://localhost:3000/api/money-record', {
+        const response = await fetch('/api/money-record', {
             method: 'DELETE',
             body: name
         });
