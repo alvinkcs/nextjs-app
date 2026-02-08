@@ -28,7 +28,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "app/components/MoneyTracer_c.jsx", "app/components/MoneyTracer.jsx"  ],
   "exclude": [
     "node_modules"
   ]
