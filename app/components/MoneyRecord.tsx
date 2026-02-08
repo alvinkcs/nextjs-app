@@ -26,7 +26,10 @@ function MoneyRecord(props) {
 
     async function handleData(event) {
         const today = new Date();
-        const formattedDate = today.toLocaleDateString();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); // Add 1 since getMonth is 0-indexed
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}/${month}/${day}`;
         const response = await fetch('/api/money-record', {
             method: 'POST',
             body: JSON.stringify({
