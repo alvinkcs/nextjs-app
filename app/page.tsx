@@ -11,6 +11,7 @@ export default function Home() {
         <Link href="/money">money</Link>
         <Link href="/trade">Trade</Link>
       </div>
+
       {/* <TripCalculator /> */}
 
       {/* limit accepted file types = accept="image/*" */}

@@ -25,8 +25,7 @@ export default async function Page() {
     };
 
     const backButtonStyle = {
-        display:'absolute',
-        // backgroundColor: "red"
+        margin: '10px 10px',
     }
 
     return (
@@ -35,7 +34,7 @@ export default async function Page() {
                 src="IMG_1438-613x1024.jpg"
                 width='200px'
             /> */}
-            <div>
+            <div style={{height: '50px', display: 'flex'}}>
                 <Link style={backButtonStyle} href="/">Back</Link>
             </div>
             <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', margin:'auto'}}>

@@ -71,17 +71,17 @@ function MoneyRecord(props) {
     }
 
     return (
-    <div style={{width:'300px', height:'100hv', backgroundColor:'black'}}>
-        <h1>Money Record</h1>
+    <div style={{width:'90vw', height:'auto', backgroundColor:'black', opacity: '0.8', borderRadius: '15px'}}>
+        <h2>Money Record</h2>
         {records.slice(0,5).map(record => ( // Limit to the first 5 items
-            <div key={record._id} style={{display:'flex'}}>
-                <h4 style={{width:'100%'}}>{record.date} ${record.value} {record.description}</h4>
+            <div key={record._id} style={{display:'flex', margin: '10px 0', padding: '5px'}}>
+                <h3 style={{width:'100%'}}>{record.date} ${record.value} {record.description}</h3>
                 <button onClick={handleDelete} name={record._id} style={{marginLeft:'10px'}}>delete</button>
             </div> 
         ))}
         <h3>This month spent: {sum}</h3>
-        <form style={{display:'flex'}}>
-            <input id="valueInput" style={{width:'100%'}} onChange={handleMoneyChange} name="money" value={money}></input>
+        <form style={{display:'flex', margin: '5px 0', padding: '5px'}}>
+            <input id="valueInput" style={{width:'100%', marginRight: '5px'}} onChange={handleMoneyChange} name="money" value={money}></input>
             <input id="descriptionInput" name="description" onChange={handleDescriptionChange} value={description}></input>
             <button style={{marginLeft:'10px'}} onClick={handleData}>Submit</button>
         </form>
