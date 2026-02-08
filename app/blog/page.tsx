@@ -1,5 +1,7 @@
 import { log } from "console";
-import MoneyTracer from "../components/MoneyTracer"
+import YoutubeMusicHandler from "../components/YoutubeMusicHandler"
+import { useState } from 'react'
+import Link from 'next/link'
 
 type url = {
     _id: String;
@@ -8,26 +10,7 @@ type url = {
 
 export default async function Page() {
 
-    const newData = {
-        url: 'TcLLpZBWsck?si=vqHE8ci_P-ZN6VC5'
-    }
-
-    const settings = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data: newData})
-    }
-
-    // const res = await fetch('http://localhost:3000/api/test', {
-    //     method: 'POST',
-    //     body: JSON.stringify(newData)
-    // })
-    // const test = await res.json()
-    // log(test)
-
-    const response = await fetch('http://localhost:3000/api/test', {
+    const response = await fetch('http://localhost:3000/api/yt', {
         cache: 'no-store', // Disable caching for fresh data (optional)
         method: 'GET',
     });
@@ -36,17 +19,33 @@ export default async function Page() {
 
     const link = "https://www.youtube.com/embed/" + data[Math.floor(Math.random()*data.length)].url + "&autoplay=1"
 
-    return <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh'}}>
-        <div style={{}}>
-            {data.map(item => (
+    const backgroundStyle = {
+    backgroundImage: "url('IMG_1438-613x1024.jpg')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    height: '100vh',
+    width: '100vw',
+    };
+
+    const backButtonStyle = {
+    display:'absolute',
+    // backgroundColor: "red"
+    }
+
+    return <div style={backgroundStyle}>
+        <div>
+            <Link style={backButtonStyle} href="/">Back</Link>
+        </div>
+        <div style={{justifyContent:'center', alignItems:'center', height: '100vh', display: 'flex'}}>
+            {/* {data.map(item => (
                 <div key={item._id}>
                     <p>{item.url}</p>
                 </div>
-            ))}
-            <MoneyTracer />
-
-            <iframe width="560" height="315" src={link} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
-            {/* <iframe width="560" height="315" src="https://www.youtube.com/embed/TcLLpZBWsck?si=vqHE8ci_P-ZN6VC5&autoplay=1" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe> */}
+            ))} */}
+            <div style={{backgroundColor: 'grey', display: 'block', width: '100rem', height: 'auto'}}>
+                <YoutubeMusicHandler />
+                <iframe width="100%" height="auto" src={link} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+            </div>
         </div>
     </div>
 }

@@ -1,5 +1,6 @@
 import { log } from "console";
 import MoneyRecord from "../components/MoneyRecord"
+import Link from 'next/link'
 
 export default async function Page() {
 
@@ -22,12 +23,20 @@ export default async function Page() {
         width: '100%',
     };
 
+    const backButtonStyle = {
+        display:'absolute',
+        // backgroundColor: "red"
+    }
+
     return (
         <div style={backgroundStyle}>
             {/* <img 
                 src="IMG_1438-613x1024.jpg"
                 width='200px'
             /> */}
+            <div>
+                <Link style={backButtonStyle} href="/">Back</Link>
+            </div>
             <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', margin:'auto'}}>
                 <MoneyRecord value="0" records={data} />
             </div>
