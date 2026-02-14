@@ -35,7 +35,7 @@ export default async function Page() {
                 width='200px'
             /> */}
             <div style={{height: '50px', display: 'flex'}}>
-                <Link style={backButtonStyle} href="/">Back</Link>
+                <Link style={backButtonStyle} href="/test">Back</Link>
             </div>
             <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', margin:'auto'}}>
                 <MoneyRecord value="0" records={data} />
