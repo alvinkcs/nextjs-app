@@ -54,7 +54,7 @@ export default function Home() {
           <a href="https://linkedin.com/in/johndoe" target="_blank" rel="noopener noreferrer">LinkedIn</a> */}
         </div>
         <div>
-          <img src="IMG_4269.jpg" style={{width: "40vw", paddingTop: "20px"}} />
+          <img src="IMG_4269.jpg" className={styles.selfImg} />
         </div>
       </section>
 
@@ -83,7 +83,8 @@ export default function Home() {
             <li>Assist companies with development of iOS App serving 10,000+ active users</li>
             <li>Built efficient audio processing and video recording mechanisms with multi-threading</li>
             <li>Improved application performance through code optimization</li>
-            <li>Implemented CI/CD pipelines reducing deployment time by 60%</li>
+            <li>Integrated with Firebase Authentication, Firebase real-time database and WebRTC for user-to-user conversation</li>
+            {/* <li>Implemented CI/CD pipelines reducing deployment time by 60%</li> */}
           </ul>
         </div>
 

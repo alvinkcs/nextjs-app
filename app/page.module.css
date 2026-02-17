@@ -89,6 +89,13 @@
   color: #d1d5db;
 }
 
+.selfImg {
+  width: 40vw;
+  padding-top: 20px;
+  min-width: 350px;
+  max-width: 600px;
+}
+
 /* Sections */
 .section {
   margin-bottom: 5rem;
