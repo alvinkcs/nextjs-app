@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import styles from "./page.module.css";
 import Link from 'next/link';
+import StarBackground from './components/StarBackground';
 
 export default function Home() {
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -31,12 +32,11 @@ export default function Home() {
   }, []);
 
   return (
+    <>
+    <StarBackground />
     <main className={styles.resumeMain}>
       {/* Navigation */}
-      <nav className={styles.nav}>
-        <Link href="/blog">Blog</Link>
-        <Link href="/money">Money</Link>
-        <Link href="/trade">Trade</Link>
+      <nav className={styles.nav} aria-label="Main navigation">
         <Link href="/game">Game</Link>
       </nav>
 
@@ -55,7 +55,7 @@ export default function Home() {
           <a href="https://linkedin.com/in/johndoe" target="_blank" rel="noopener noreferrer">LinkedIn</a> */}
         </div>
         <div>
-          <img src="IMG_4269.jpg" className={styles.selfImg} />
+          <img src="/IMG_4269.jpg" alt="Photo of Alvin Kong" className={styles.selfImg} />
         </div>
       </section>
 
@@ -215,5 +215,6 @@ export default function Home() {
         <p>Let's build something amazing together!</p>
       </footer>
     </main>
+    </>
   );
 }

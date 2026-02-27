@@ -1,4 +1,4 @@
-# Click-to-Move Adventure — Game Feature Documentation
+# 3D Adventure — Game Feature Documentation
 
 ## Table of Contents
 
@@ -6,25 +6,30 @@
 - [Architecture](#architecture)
 - [File Structure](#file-structure)
 - [Game Mechanics](#game-mechanics)
-- [World Design](#world-design)
-- [Rendering Pipeline](#rendering-pipeline)
-- [Coordinate Systems](#coordinate-systems)
+- [3D World Design](#3d-world-design)
+- [Checkpoint System](#checkpoint-system)
+- [Camera System](#camera-system)
+- [Controls Reference](#controls-reference)
 - [How to Extend](#how-to-extend)
 
 ---
 
 ## Feature Overview
 
-**Click-to-Move Adventure** is a canvas-based 2D game embedded as a route (`/game`) in a Next.js 14 App Router application. The player clicks anywhere on the canvas to move a character avatar across a procedurally decorated open world. The game features:
+**3D Adventure** is a Three.js-powered 3D game embedded as a route (`/game`) in a Next.js App Router application. The player navigates a stylized open world using click-to-move, WASD keyboard controls, and jump physics to reach glowing checkpoint markers scattered across the landscape. Each checkpoint triggers an overlay that displays external content (embedded web pages or images).
 
-- **Click-to-move navigation** with smooth avatar movement
-- **Smooth-follow camera** that tracks the avatar with linear interpolation
-- **Procedurally generated world** with trees, rocks, bushes, and flowers
-- **Depth-sorted rendering** for correct visual overlap between the avatar and decorations
-- **Visual effects** including click ripples, dust particles, target indicators, and a walking bob animation
-- **Heads-up display (HUD)** showing avatar coordinates and movement state
+Key features:
 
-The entire game runs client-side inside a single React component using the HTML5 Canvas API and `requestAnimationFrame` for the game loop. No external game libraries are required.
+- **Click-to-move navigation** — click anywhere on the ground to set a movement target via raycasting
+- **WASD / Arrow key movement** — camera-relative directional walking
+- **Jump physics** — space bar jump with gravity simulation
+- **Interactive checkpoints** — glowing 3D markers that open an overlay with embedded content
+- **Third-person camera** — smooth lerp-based follow camera with frame-rate independent smoothing
+- **Procedural world** — seeded random placement of trees and rocks across a 200×200 unit terrain
+- **Real-time lighting and shadows** — directional sun light with PCF soft shadow maps
+- **Atmospheric fog** — exponential distance fog matching the sky color
+
+The game runs entirely client-side. Three.js is used directly (no React-Three-Fiber) inside a `useEffect` hook that manages the full WebGL lifecycle.
 
 ---
 
@@ -33,320 +38,401 @@ The entire game runs client-side inside a single React component using the HTML5
 ### High-Level Diagram
 
 ```
-┌─────────────────────────────────────────────┐
-│  /game route (page.tsx)                     │
-│  ┌────────────────────────────────────────┐ │
-│  │  <GameCanvas /> (client component)     │ │
-│  │                                        │ │
-│  │  ┌──────────┐  ┌──────────────────┐   │ │
-│  │  │  State    │  │  Game Loop       │   │ │
-│  │  │  (refs)   │──│  (rAF callback)  │   │ │
-│  │  └──────────┘  └──────┬───────────┘   │ │
-│  │                       │               │ │
-│  │         ┌─────────────┼──────────┐    │ │
-│  │         ▼             ▼          ▼    │ │
-│  │     Update        Render       Draw   │ │
-│  │     Physics       World        HUD    │ │
-│  └────────────────────────────────────────┘ │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  /game route (page.tsx)                                      │
+│                                                              │
+│  ┌────────────────────────────┐  ┌────────────────────────┐  │
+│  │  <Game3DCanvas />          │  │  <CheckpointOverlay /> │  │
+│  │  (Three.js scene)          │  │  (React modal)         │  │
+│  │                            │  │                        │  │
+│  │  ┌──────────┐  ┌────────┐ │  │  ┌──────────────────┐  │  │
+│  │  │  Scene   │  │  Game  │ │  │  │  iframe / image  │  │  │
+│  │  │  Setup   │──│  Loop  │ │  │  │  display panel   │  │  │
+│  │  └──────────┘  └───┬────┘ │  │  └──────────────────┘  │  │
+│  │                    │      │  │                        │  │
+│  │      ┌─────────────┼────┐ │  └────────────────────────┘  │
+│  │      ▼             ▼    ▼ │                               │
+│  │  Input         Physics  Render                            │
+│  │  (pointer,     (move,   (Three.js                         │
+│  │   keyboard)    jump,    renderer)                         │
+│  │               camera)                                     │
+│  └────────────────────────────┘                              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Game Loop
+### React–Three.js Integration Pattern
 
-The game loop follows a standard **update-then-render** pattern driven by `requestAnimationFrame`:
+The game uses **vanilla Three.js inside a React `useEffect`**, not React-Three-Fiber. This is a deliberate choice that keeps the rendering loop, scene graph, and input handling in a single imperative block:
 
-1. **Update phase** — advance avatar position toward the click target, update the camera, tick particle/ripple lifetimes.
-2. **Render phase** — clear the canvas, draw the ground and grid, depth-sort all entities, draw effects, draw HUD.
-
-The loop is started inside a `useEffect` and cleaned up with `cancelAnimationFrame` on unmount.
+1. **Mount**: `useEffect` creates the `Scene`, `Camera`, `WebGLRenderer`, all meshes, lights, and event listeners. The renderer's DOM element is appended to a container `<div>` via a ref.
+2. **Loop**: `requestAnimationFrame` drives a `loop()` callback that updates physics, animates objects, and calls `renderer.render()`.
+3. **Pause bridge**: A `useRef` mirror (`isPausedRef`) of the `isPaused` prop lets the imperative loop read React state without re-running the effect.
+4. **Unmount**: The cleanup function cancels the animation frame, removes event listeners, traverses the scene to dispose all geometries and materials, disposes the renderer, and removes the canvas element from the DOM.
 
 ### State Management
 
-All mutable game state is stored in React `useRef` objects rather than `useState`. This is intentional — refs avoid triggering re-renders on every frame (60 fps) while still persisting values across animation frames:
+All mutable game state lives in local variables inside the `useEffect` closure rather than in React state or refs. This avoids re-renders on every frame while keeping the code straightforward:
 
-| Ref | Type | Purpose |
-|-----|------|---------|
-| `avatar` | `Vec2` | Current avatar world position |
-| `target` | `Vec2 \| null` | Click destination (null when idle) |
-| `camera` | `Vec2` | Current camera world position |
-| `bobPhase` | `number` | Phase accumulator for the walking/idle bob animation |
-| `moving` | `boolean` | Whether the avatar is currently in motion |
-| `facingRight` | `boolean` | Avatar facing direction (affects eye position and lean) |
-| `ripples` | `Ripple[]` | Active click-ripple effects |
-| `dust` | `Particle[]` | Active dust particles behind the avatar |
-| `decorations` | `Decoration[]` | World decoration objects (generated once on mount) |
-
-### Camera System
-
-The camera uses **linear interpolation (lerp)** to smoothly follow the avatar:
-
-```typescript
-camera.x = lerp(camera.x, avatar.x, CAMERA_SMOOTHING); // 0.06
-camera.y = lerp(camera.y, avatar.y, CAMERA_SMOOTHING);
-```
-
-With a smoothing factor of `0.06`, the camera closes 6% of the gap between its current position and the avatar every frame. This creates a smooth trailing effect — the camera accelerates when far from the avatar and decelerates as it catches up.
+| Variable | Type | Purpose |
+|----------|------|---------|
+| `velocityY` | `number` | Current vertical velocity (for jump arc) |
+| `isGrounded` | `boolean` | Whether the avatar is on the ground |
+| `moveTarget` | `Vector3 \| null` | Click-to-move destination (null when idle) |
+| `bobPhase` | `number` | Phase accumulator for the walking/idle bob |
+| `isMoving` | `boolean` | Whether the avatar is currently in motion |
+| `triggeredCpId` | `string \| null` | ID of the last triggered checkpoint (prevents re-triggers) |
+| `keysDown` | `Set<string>` | Currently held keyboard keys |
 
 ---
 
 ## File Structure
 
-### `page.tsx` — Route Page
+### `page.tsx` — Game Page
 
-The server component that defines the `/game` route. Responsibilities:
+The top-level page component for the `/game` route. Responsibilities:
 
-- Exports Next.js `metadata` (page title and description)
-- Renders a header bar with the game title, a "Canvas Game" badge, and a back-to-home link
-- Mounts the `<GameCanvas />` client component inside a flex-grow wrapper
+- Manages `activeCheckpoint` state — when non-null, the checkpoint overlay is visible and the game is paused.
+- Passes `onCheckpoint` and `isPaused` props down to `Game3DCanvas`.
+- Renders `CheckpointOverlay` conditionally on top of the canvas.
+- Listens for the Escape key at the page level to close the overlay.
+- Renders a header bar with the game title, a "Three.js" badge, and a back-to-home link.
+- Renders an HUD bar at the bottom of the canvas with control hints.
 
 ### `page.module.css` — Page Styles
 
 CSS Module styles for the page layout:
 
-- `.container` — Full-viewport flex column with a dark background (`#1a1a2e`)
-- `.header` — Semi-transparent top bar with blur backdrop
-- `.canvasWrapper` — Flex-grow area that the canvas fills entirely
-- Responsive breakpoint at 600px hides the badge and reduces padding
+- `.container` — Full-viewport flex column with a dark background (`#1a1a2e`).
+- `.header` — Semi-transparent top bar with blur backdrop and navigation.
+- `.canvasWrapper` — Flex-grow area that the 3D canvas fills entirely; also the positioning context for the overlay and HUD.
+- `.hud` — Absolutely positioned bottom-center control hints with a pill-shaped translucent background.
+- Responsive breakpoint at 600px hides the badge and reduces font sizes.
 
-### `components/GameCanvas.tsx` — Game Engine
+### `components/Game3DCanvas.tsx` — 3D Game Engine
 
-The core client component (`'use client'`). Contains all game logic, rendering, and interaction handling in a single file. Key sections:
+The core client component. Contains the Three.js scene setup, all 3D object factories, input handling, physics, and the animation loop. Key sections:
 
-| Section | Lines | Description |
-|---------|-------|-------------|
-| Type definitions | 5–32 | `Vec2`, `Ripple`, `Particle`, `Decoration` interfaces |
-| Constants | 34–37 | `AVATAR_SPEED`, `CAMERA_SMOOTHING`, `WORLD_SIZE`, `GRID_SIZE` |
-| Utility functions | 39–49 | `seededRandom()`, `lerp()` |
-| Draw functions | 51–254 | `drawTree`, `drawRock`, `drawBush`, `drawFlower`, `drawAvatar`, `drawHUD` |
-| Component body | 256–503 | Refs, decoration generation, resize handler, click handler, game loop, JSX |
+| Section | Description |
+|---------|-------------|
+| `CHECKPOINTS` array | Defines checkpoint positions, types, URLs, labels, and colors |
+| Physics constants | `MOVE_SPEED`, `JUMP_SPEED`, `GRAVITY`, `CAMERA_OFFSET`, `CAMERA_SMOOTHING`, `CHECKPOINT_TRIGGER_DIST`, `WORLD_HALF` |
+| `seededRandom()` | Deterministic PRNG for reproducible decoration placement |
+| `createAvatar()` | Builds the player character from primitive meshes |
+| `createTree()` / `createRock()` | Procedural decoration factories |
+| `createCheckpointMarker()` | Builds the glowing checkpoint indicator (torus + beam + light + diamond) |
+| `useEffect` body | Scene init, lighting, ground, decorations, event handlers, game loop, cleanup |
+
+### `components/CheckpointOverlay.tsx` — Checkpoint Overlay
+
+A React component that displays checkpoint content in a modal panel:
+
+- Exports the `CheckpointData` interface used across the game.
+- Renders a blurred backdrop that closes the overlay on click.
+- Displays a header with the checkpoint label and description.
+- Content area shows either an `<iframe>` (for `link` type) or an `<img>` (for `image` type).
+- Footer hint reminds the user how to close.
+
+### `components/CheckpointOverlay.module.css` — Overlay Styles
+
+CSS Module styles for the overlay:
+
+- `.backdrop` — Full-overlay with dark semi-transparent background and blur, animated fade-in.
+- `.panel` — Centered card with dark background, rounded corners, and a slide-up entrance animation.
+- `.content` — Flexible content area with a minimum height of 400px.
+- `.iframe` — Full-width/height borderless iframe.
+- `.imageWrapper` — Centered image display with padding.
+- Responsive adjustments at 600px.
 
 ---
 
 ## Game Mechanics
 
-### Click-to-Move
+### Click-to-Move (Raycasting)
 
-When the player clicks the canvas:
+When the player clicks on the 3D canvas:
 
-1. The screen-space click coordinates are converted to **world coordinates** using the current camera offset.
-2. The world coordinates are **clamped** to the world boundaries (`±WORLD_SIZE/2`).
-3. The clamped position is stored as the movement `target`.
-4. A **ripple effect** is spawned at the target location.
-5. The avatar's facing direction is updated based on whether the target is left or right of the current position.
+1. The pointer position is converted to **normalized device coordinates** (NDC: -1 to +1 range).
+2. A `THREE.Raycaster` is set from the camera through the NDC point.
+3. The raycaster tests for intersections against the **ground plane** mesh.
+4. If a hit is found, the intersection point (clamped to y=0) becomes the new `moveTarget`.
+5. A **yellow target ring** (torus mesh) appears at the destination and spins until the avatar arrives.
 
-### Avatar Movement
+Each frame, if a `moveTarget` exists and no keyboard input overrides it:
 
-Each frame, if a target exists:
+1. The direction vector from avatar to target is computed (XZ plane only).
+2. If the remaining distance is greater than 0.5 units, the avatar steps toward the target at `MOVE_SPEED` (15 units/sec), capped by the remaining distance to avoid overshoot.
+3. The avatar's Y-rotation is set to face the movement direction via `atan2`.
+4. When within 0.5 units, the avatar snaps to the target and movement stops.
 
-1. Compute the direction vector from avatar to target.
-2. Compute the distance. If greater than 3 pixels, move the avatar.
-3. Step size uses `Math.min(AVATAR_SPEED, dist * 0.08)` — this means the avatar moves at full speed (`4` units/frame) when far away and **decelerates** as it approaches the target, creating an ease-out effect.
-4. When within 3 units of the target, snap to the exact position and enter idle state.
+### WASD / Arrow Key Movement
+
+Keyboard movement is **camera-relative**, not world-axis-aligned:
+
+1. The camera's forward direction is projected onto the XZ plane and normalized (`camFwd`).
+2. The camera's right direction is derived via a cross product (`camRight`).
+3. W/Up adds `camFwd`, S/Down subtracts it, D/Right adds `camRight`, A/Left subtracts it.
+4. The resulting direction vector is normalized and scaled by `MOVE_SPEED * dt`.
+5. Keyboard input cancels any active click-to-move target.
+
+### Jump Physics
+
+Jumping uses a simple Euler integration model:
+
+1. Pressing Space (when grounded) sets `velocityY` to `JUMP_SPEED` (12 units/sec) and marks `isGrounded = false`.
+2. Each frame, gravity is applied: `velocityY += GRAVITY * dt` where `GRAVITY = -30`.
+3. The avatar's Y position is updated: `position.y += velocityY * dt`.
+4. When `position.y` drops to 0 or below, the avatar lands: Y is clamped to 0, velocity is zeroed, and `isGrounded` is restored.
+
+The avatar can move horizontally while airborne — jump does not interrupt WASD or click-to-move.
 
 ### Bob Animation
 
-The avatar has a vertical bobbing motion driven by a sine wave:
+The avatar has a vertical body bob driven by a sine wave:
 
-- **While moving**: phase increments by `0.12` per frame, amplitude of `4` pixels — a quick, noticeable bounce.
-- **While idle**: phase increments by `0.04` per frame, amplitude of `2` pixels — a gentle breathing-like sway.
+- **While moving**: phase increments at rate `8 * dt`, amplitude `0.15` units — a quick, visible bounce.
+- **While idle**: phase increments at rate `2 * dt`, amplitude `0.05` units — a gentle breathing sway.
 
-### Dust Particles
+The bob is applied only to the body mesh's local Y position, not the root group.
 
-While moving, each frame has a 35% chance to spawn a dust particle behind the avatar. Particles have:
+### World Boundary
 
-- Random horizontal spread around the avatar's feet
-- Slight upward drift (`vy` is negative)
-- A `life` value that decreases by `0.018` per frame (roughly 55 frames / ~0.9 seconds lifespan)
-- Size scales down with remaining life for a fade-out effect
-
-### Click Ripples
-
-Each click spawns an expanding ring at the target location:
-
-- Radius grows by `1.5` pixels per frame
-- Opacity decreases by `0.015` per frame (roughly 67 frames / ~1.1 seconds)
-- Rendered as a yellow-gold stroke circle (`rgba(255, 220, 100, ...)`)
-
-### Target Indicator
-
-While the avatar is moving, a **pulsing reticle** is drawn at the target:
-
-- An outer ring with a `sin`-based pulse (±3 pixel radius oscillation)
-- A small filled center dot
-- Both rendered in gold (`rgba(255, 220, 100, ...)`)
+The world spans from `-WORLD_HALF` to `+WORLD_HALF` (100 units in each direction from the origin, 200×200 total). The avatar's XZ position is clamped to this range every frame.
 
 ---
 
-## World Design
+## 3D World Design
 
-### World Boundaries
+### Ground
 
-The world is a square region defined by `WORLD_SIZE = 3000`, spanning from `(-1500, -1500)` to `(1500, 1500)` in world coordinates. The avatar spawns at the origin `(0, 0)`. A dashed white border is rendered at the world edges, and click targets are clamped to stay within bounds.
+A flat `PlaneGeometry` (200×200) rotated to lie horizontally, colored grass-green (`#4a7c59`). It receives shadows from all objects above it. A subtle grid helper overlays the ground at 8% opacity for spatial reference.
 
-### Grid System
+### Avatar
 
-A subtle white grid (`GRID_SIZE = 80` pixels) overlays the ground. The grid is drawn dynamically based on the camera viewport — only lines visible on screen are rendered. Grid lines use a very low opacity (`rgba(255, 255, 255, 0.08)`) to provide spatial reference without visual clutter.
+The player character is built from primitive Three.js geometries grouped under a single `THREE.Group`:
 
-### Procedural Decorations
+| Part | Geometry | Color | Position (local Y) |
+|------|----------|-------|---------------------|
+| Body | `CylinderGeometry(0.5, 0.55, 1.5)` | `#3366cc` (blue) | 0.75 |
+| Shirt | `CylinderGeometry(0.52, 0.52, 0.5)` | `#4488ee` (light blue) | 1.25 |
+| Head | `SphereGeometry(0.4)` | `#ffddaa` (skin tone) | 2.0 |
+| Hat | `ConeGeometry(0.45, 0.4)` | `#553322` (brown) | 2.5 |
+| Eyes (×2) | `SphereGeometry(0.06)` | `#333333` (dark) | 2.05, z=0.35 |
 
-On mount, 120 decoration attempts are made using a **seeded pseudo-random number generator** (seed `42`). This ensures the world looks identical across sessions and devices.
+All parts cast shadows. The group rotates on the Y-axis to face the movement direction.
 
-Each decoration:
+### Decorations
 
-- Is placed randomly within the world bounds
-- Is **excluded** from a 60-unit radius around the origin (the spawn area) to keep the starting area clear
-- Is assigned a random type: `tree`, `rock`, `bush`, or `flower`
-- Has a random `size` multiplier between `0.5` and `1.3`
-- Has a random `hue` value (0–1) used for color variation in bushes and flowers
+Decorations are placed procedurally using a seeded PRNG (seed `42`) for reproducibility:
 
-#### Decoration Types
+- **50 trees** — trunk (`CylinderGeometry`) topped with a conical canopy (`ConeGeometry`), randomly scaled between 0.6× and 1.4×.
+- **30 rocks** — `DodecahedronGeometry` squashed on the Y-axis for a natural look, grey-colored, randomly scaled.
 
-| Type | Visual | Characteristics |
-|------|--------|-----------------|
-| **Tree** | Triangular green canopy on a brown trunk | Two-layer foliage (dark + light triangles), drop shadow |
-| **Rock** | Rounded grey ellipse | Two-layer shading (dark base + lighter highlight), drop shadow |
-| **Bush** | Cluster of green circles | Three overlapping circles with hue-shifted greens, drop shadow |
-| **Flower** | Petals on a stem | Green stem, 5 colored petals arranged in a ring, yellow center dot |
+Placement rules:
+- Decorations within 8 units of the origin are skipped to keep the spawn area clear.
+- Decorations within 8 units of any checkpoint are skipped to keep approach paths unobstructed.
 
----
+### Checkpoint Markers
 
-## Rendering Pipeline
+Each checkpoint is a `THREE.Group` containing four elements:
 
-Each frame renders in the following order (back to front):
+| Element | Geometry | Effect |
+|---------|----------|--------|
+| **Ground torus** | `TorusGeometry(2.5, 0.15)` | Lies flat, rotates slowly, uses checkpoint color with emissive glow |
+| **Beam** | `CylinderGeometry(0.08, 0.25, 10)` | Semi-transparent vertical pillar, bobs up and down sinusoidally |
+| **Point light** | `PointLight(color, 3, 20)` | Pulses intensity between 1.5 and 3.5 for a breathing glow |
+| **Floating diamond** | `OctahedronGeometry(0.5)` | Hovers above the beam, rotates on the Y-axis, bobs vertically |
 
-### 1. Background Fill
+Checkpoint animations continue even when the game is paused, keeping the scene visually alive.
 
-The entire canvas is cleared with a grass-green color (`#4a7c59`).
+### Lighting
 
-### 2. Grid Lines
+| Light | Type | Settings |
+|-------|------|----------|
+| Ambient | `AmbientLight` | White, intensity 0.6 — fills shadows softly |
+| Sun | `DirectionalLight` | White, intensity 1.2 — main scene illumination; casts shadows |
 
-Vertical and horizontal grid lines are drawn only within the camera viewport for performance. Grid calculations use the camera offset to determine which world-space grid lines fall on screen.
+The sun light follows the avatar (`position = avatar + (50, 50, 25)`) so shadows remain consistent regardless of where the player moves. Shadow map is 2048×2048 with PCF soft shadow filtering and a frustum spanning 120 units.
 
-### 3. World Boundary
+### Fog
 
-A dashed white rectangle is drawn at the world's edge using `ctx.setLineDash([8, 4])`.
-
-### 4. Depth-Sorted Entities
-
-All decorations and the avatar are collected into a `sortables` array, each with a `y` world coordinate and a `draw` callback. The array is **sorted by ascending `y`** so that objects further down the screen (closer to the "camera") are drawn last, appearing in front of objects higher up. This creates the illusion of depth in a top-down view.
-
-**Frustum culling**: decorations outside the visible viewport (with a small margin) are skipped entirely to avoid unnecessary draw calls.
-
-### 5. Ripple Effects
-
-Click ripples are drawn as expanding circles on top of all entities.
-
-### 6. Target Indicator
-
-The pulsing reticle at the movement destination is drawn above entities.
-
-### 7. Dust Particles
-
-Dust particles are drawn after entities so they appear in the foreground.
-
-### 8. HUD
-
-The HUD is drawn last, in **screen space** (not affected by the camera offset):
-
-- **Top-right panel**: Displays the avatar's world X/Y coordinates and movement state (Moving/Idle)
-- **Bottom-center panel**: Shows the instruction text "Click anywhere to move"
+`FogExp2` with color `#87ceeb` (sky blue) and density `0.006` creates distance-based atmospheric fade. This matches the scene background color so distant objects blend smoothly into the horizon.
 
 ---
 
-## Coordinate Systems
+## Checkpoint System
 
-The game uses two coordinate systems:
+### Checkpoint Data
 
-### World Space
-
-- Origin `(0, 0)` is the center of the world and the avatar's spawn point.
-- Positive X is right, positive Y is down.
-- Range: `(-1500, -1500)` to `(1500, 1500)`.
-- All game objects (avatar, decorations, particles) store positions in world space.
-
-### Screen Space
-
-- Origin `(0, 0)` is the top-left corner of the canvas.
-- Determined by the canvas element's pixel dimensions.
-- Used for HUD rendering and mouse input.
-
-### Conversion
-
-World-to-screen conversion uses the camera offset:
+Each checkpoint is defined in the `CHECKPOINTS` array with the following shape:
 
 ```typescript
-const offsetX = canvasWidth / 2 - camera.x;
-const offsetY = canvasHeight / 2 - camera.y;
-
-screenX = worldX + offsetX;
-screenY = worldY + offsetY;
+interface CheckpointData {
+  id: string;                         // Unique identifier
+  position: [number, number, number]; // World position [x, y, z]
+  type: 'link' | 'image';            // Content type
+  url: string;                        // URL to display
+  label: string;                      // Display title
+  description: string;                // Short description
+  color: number;                      // Hex color for the marker
+}
 ```
 
-Screen-to-world conversion (used in click handling):
+### Current Checkpoints
 
-```typescript
-worldX = screenX + camera.x - canvasWidth / 2;
-worldY = screenY + camera.y - canvasHeight / 2;
-```
+| ID | Position | Type | Content |
+|----|----------|------|---------|
+| `github` | (40, 0, 0) | link | GitHub profile page |
+| `photo` | (0, 0, 40) | image | Personal photo |
+| `hkust` | (-40, 0, 0) | link | HKUST university website |
+| `vocal-coach` | (0, 0, -40) | link | Vocal Coach iOS app listing |
+
+### Trigger Logic
+
+1. Each frame, the avatar's ground position (XZ) is compared against every checkpoint position.
+2. If the distance is less than `CHECKPOINT_TRIGGER_DIST` (5 units) and the checkpoint hasn't already been triggered, `onCheckpoint` fires with the checkpoint data.
+3. `triggeredCpId` stores the last-triggered checkpoint ID to prevent repeated triggers while standing on the same checkpoint.
+4. Once the avatar moves far enough away (beyond `CHECKPOINT_TRIGGER_DIST * 2` from all checkpoints), `triggeredCpId` resets so the same checkpoint can be triggered again on a return visit.
+
+### Overlay Component
+
+When a checkpoint triggers:
+
+1. `GamePage` stores the checkpoint data in `activeCheckpoint` state.
+2. `isPaused` becomes `true`, which is bridged into the game loop via `isPausedRef`. The loop continues rendering (checkpoint animations play) but skips physics and input processing.
+3. `CheckpointOverlay` renders on top of the canvas with:
+   - A blurred dark backdrop (click to dismiss).
+   - A modal panel with the checkpoint's label and description.
+   - An `<iframe>` (sandboxed with `allow-scripts allow-same-origin allow-popups`) for link-type checkpoints, or an `<img>` for image-type checkpoints.
+   - A hint footer: "Press Escape or click outside to close."
+4. Closing the overlay (Escape key, close button, or backdrop click) sets `activeCheckpoint` to `null`, which unpauses the game.
+
+---
+
+## Camera System
+
+The camera uses a **third-person follow** model with frame-rate independent smoothing.
+
+### Configuration
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CAMERA_OFFSET` | `(0, 10, 15)` | Fixed offset from the avatar to the desired camera position |
+| `CAMERA_SMOOTHING` | `0.04` | Base smoothing factor per frame at 60 fps |
+
+### Follow Algorithm
+
+Each frame:
+
+1. Compute the desired camera position: `avatar.position + CAMERA_OFFSET`.
+2. Calculate a **frame-rate independent** smoothing factor:
+   ```
+   camSmooth = 1 - (1 - CAMERA_SMOOTHING) ^ (dt * 60)
+   ```
+   This formula ensures the camera feels identical at 30 fps, 60 fps, or 144 fps. At exactly 60 fps, `camSmooth` equals `CAMERA_SMOOTHING`.
+3. Lerp the camera position toward the desired position using `camSmooth`.
+4. Point the camera at the avatar's position offset upward by 2 units (roughly chest height).
+
+### Perspective
+
+The camera uses a `PerspectiveCamera` with a 60° field of view, near plane at 0.1, and far plane at 500. It is initialized looking at the origin and transitions smoothly once the game loop starts.
+
+---
+
+## Controls Reference
+
+| Input | Action |
+|-------|--------|
+| **Left click** (on ground) | Set movement target — avatar walks to the clicked point |
+| **W** / **Arrow Up** | Move forward (camera-relative) |
+| **S** / **Arrow Down** | Move backward (camera-relative) |
+| **A** / **Arrow Left** | Strafe left (camera-relative) |
+| **D** / **Arrow Right** | Strafe right (camera-relative) |
+| **Space** | Jump (when grounded) |
+| **Escape** | Close checkpoint overlay |
+
+WASD movement overrides and cancels any active click-to-move target. The avatar can jump while moving in any direction. All movement is disabled while a checkpoint overlay is open.
 
 ---
 
 ## How to Extend
 
-### Adding a New Decoration Type
+### Adding a New Checkpoint
 
-1. Define the draw function following the existing pattern:
+Add an entry to the `CHECKPOINTS` array in `Game3DCanvas.tsx`:
 
 ```typescript
-function drawMyDecoration(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number,
-  scale: number, hue: number
-) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(scale, scale);
-  // Draw shadow, then main shape
-  ctx.restore();
+{
+  id: 'my-checkpoint',
+  position: [30, 0, -30],
+  type: 'link',
+  url: 'https://example.com',
+  label: 'My Checkpoint',
+  description: 'A description of what this checkpoint shows',
+  color: 0xff9900,
 }
 ```
 
-2. Add the new type to the `Decoration` interface's `type` union:
+The checkpoint marker, trigger logic, and overlay handling are all data-driven — no other code changes are needed.
+
+### Adding New 3D Objects
+
+Follow the existing factory function pattern:
 
 ```typescript
-type: 'tree' | 'rock' | 'bush' | 'flower' | 'myDecoration';
+function createMyObject(x: number, z: number, scale: number): THREE.Group {
+  const group = new THREE.Group();
+  group.position.set(x, 0, z);
+
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.y = 0.5 * scale;
+  mesh.scale.setScalar(scale);
+  mesh.castShadow = true;
+  group.add(mesh);
+
+  return group;
+}
 ```
 
-3. Include it in the `types` array inside the decoration generation `useEffect`.
+Then add a placement loop in the `useEffect`, after the existing tree/rock loops:
 
-4. Add a rendering branch in the sortables loop inside the game loop.
+```typescript
+for (let i = 0; i < 20; i++) {
+  const x = (rng() - 0.5) * WORLD_HALF * 1.8;
+  const z = (rng() - 0.5) * WORLD_HALF * 1.8;
+  if (Math.abs(x) < 8 && Math.abs(z) < 8) continue;
+  if (isTooCloseToCheckpoint(x, z, 8)) continue;
+  scene.add(createMyObject(x, z, 0.5 + rng()));
+}
+```
 
-### Adding NPCs or Other Moving Entities
+Use `MeshStandardMaterial` and enable `castShadow` on meshes to integrate with the existing lighting.
 
-1. Create a new interface (e.g., `NPC`) with position, target, speed, and appearance properties.
-2. Store instances in a `useRef` array.
-3. In the game loop update phase, advance NPC positions using the same movement logic as the avatar.
-4. Push each NPC into the `sortables` array with its `y` coordinate so it depth-sorts correctly with the avatar and decorations.
-
-### Adding Collision Detection
-
-The current system has no collision. To add it:
-
-1. Before applying the avatar's movement step, check if the new position would overlap any decoration (simple circle-circle or point-in-rect test).
-2. If a collision is detected, either stop movement or slide the avatar along the obstacle edge.
-
-### Adding a Minimap
-
-1. After the main HUD draw, render a small rectangle in a corner of the screen.
-2. Scale the world down so the full `WORLD_SIZE` fits in the minimap area.
-3. Draw dots for decorations and a highlighted dot for the avatar.
-4. Draw a rectangle representing the current camera viewport.
-
-### Adjusting Game Constants
+### Modifying Physics Constants
 
 | Constant | Default | Effect of Increasing |
 |----------|---------|---------------------|
-| `AVATAR_SPEED` | `4` | Avatar moves faster |
-| `CAMERA_SMOOTHING` | `0.06` | Camera follows more tightly (less lag). At `1.0` it would snap instantly. |
-| `WORLD_SIZE` | `3000` | Larger explorable area |
-| `GRID_SIZE` | `80` | Wider grid squares, fewer grid lines |
+| `MOVE_SPEED` | `15` | Avatar walks faster |
+| `JUMP_SPEED` | `12` | Higher jumps |
+| `GRAVITY` | `-30` | Faster fall (more negative = stronger pull) |
+| `CAMERA_OFFSET` | `(0, 10, 15)` | Camera further from avatar; increase Y for higher angle, Z for more distance |
+| `CAMERA_SMOOTHING` | `0.04` | Camera follows more tightly. At `1.0` it snaps instantly. |
+| `CHECKPOINT_TRIGGER_DIST` | `5` | Larger activation radius around checkpoints |
+| `WORLD_HALF` | `100` | Larger explorable area (world spans ±this value) |
+
+### Adding Terrain Height
+
+The current ground is flat. To add terrain:
+
+1. Replace `PlaneGeometry` with a subdivided plane and displace vertices based on a noise function.
+2. In the movement update, sample the terrain height at the avatar's XZ position and set the avatar's base Y accordingly.
+3. Update jump physics to use the terrain height as the ground level instead of `y = 0`.
+4. Adjust decoration placement to account for terrain height.
+
+### Adding Collectibles or Scoring
+
+1. Define a new data array similar to `CHECKPOINTS` with positions and reward values.
+2. Create a marker factory (e.g., spinning coins using `CylinderGeometry`).
+3. In the game loop, check proximity and remove collected items from the scene.
+4. Lift the score into React state via a callback prop (same pattern as `onCheckpoint`) to display it in the HUD.
