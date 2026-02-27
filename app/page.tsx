@@ -33,11 +33,12 @@ export default function Home() {
   return (
     <main className={styles.resumeMain}>
       {/* Navigation */}
-      {/* <nav className={styles.nav}>
+      <nav className={styles.nav}>
         <Link href="/blog">Blog</Link>
         <Link href="/money">Money</Link>
         <Link href="/trade">Trade</Link>
-      </nav> */}
+        <Link href="/game">Game</Link>
+      </nav>
 
       {/* Hero Section */}
       <section className={`${styles.hero} ${styles.fadeIn}`}>
