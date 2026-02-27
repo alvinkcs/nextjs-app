@@ -1,5 +1,7 @@
-/* Main Container */
+/* Main Container — above star background */
 .resumeMain {
+  position: relative;
+  z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
@@ -10,34 +12,36 @@
 .nav {
   position: sticky;
   top: 0;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(10, 10, 30, 0.7);
+  backdrop-filter: blur(12px);
   padding: 1rem 0;
   display: flex;
   gap: 2rem;
   justify-content: center;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 3rem;
   z-index: 100;
 }
 
 .nav a {
   text-decoration: none;
-  color: #374151;
-  font-weight: 500;
-  transition: color 0.3s ease;
-  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
 }
 
 .nav a:hover {
-  color: #2563eb;
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(102, 126, 234, 0.6);
 }
 
 /* Hero Section */
 .hero {
   text-align: center;
   padding: 5rem 0 4rem;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 4rem;
 }
 
@@ -53,14 +57,14 @@
 
 .title {
   font-size: 1.75rem;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.85);
   margin: 0 0 0.5rem;
   font-weight: 500;
 }
 
 .tagline {
   font-size: 1.25rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.5);
   margin: 0 0 2rem;
   font-style: italic;
 }
@@ -75,18 +79,19 @@
 }
 
 .contact a {
-  color: #2563eb;
+  color: #8eaaff;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
 .contact a:hover {
-  color: #1d4ed8;
+  color: #b8ccff;
+  text-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
   text-decoration: underline;
 }
 
 .contact span {
-  color: #d1d5db;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .selfImg {
@@ -94,6 +99,7 @@
   padding-top: 20px;
   min-width: 350px;
   max-width: 600px;
+  border-radius: 12px;
 }
 
 /* Sections */
@@ -105,7 +111,7 @@
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0 0 2rem;
-  color: #1f2937;
+  color: #f0f0ff;
   position: relative;
   padding-bottom: 0.5rem;
 }
@@ -125,7 +131,7 @@
 .aboutText {
   font-size: 1.25rem;
   line-height: 1.8;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.7);
   max-width: 800px;
 }
 
@@ -133,15 +139,19 @@
 .experienceItem {
   margin-bottom: 3rem;
   padding: 2rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
   border-radius: 12px;
   border-left: 4px solid #667eea;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
 .experienceItem:hover {
   transform: translateX(8px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .experienceHeader {
@@ -156,22 +166,22 @@
 .experienceHeader h3 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #f0f0ff;
   margin: 0;
 }
 
 .period {
   font-size: 1rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
-  background: #e5e7eb;
+  background: rgba(255, 255, 255, 0.08);
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
 }
 
 .company {
   font-size: 1.125rem;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0 0 1rem;
   font-weight: 500;
 }
@@ -186,7 +196,7 @@
   padding-left: 1.5rem;
   margin-bottom: 0.5rem;
   position: relative;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.65);
   line-height: 1.6;
 }
 
@@ -207,22 +217,24 @@
 
 .skillCategory {
   padding: 2rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
   border-radius: 12px;
-  border: 2px solid #e5e7eb;
-  transition: transform 0.3s ease, border-color 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
 }
 
 .skillCategory:hover {
   transform: translateY(-8px);
-  border-color: #667eea;
+  border-color: rgba(102, 126, 234, 0.4);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .skillCategory h4 {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 1rem;
-  color: #1f2937;
+  color: #f0f0ff;
 }
 
 .skillTags {
@@ -248,13 +260,17 @@
 /* Education */
 .educationItem {
   padding: 2rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
   border-radius: 12px;
   border-left: 4px solid #667eea;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .description {
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.5);
   margin: 0.5rem 0 0;
   font-size: 1rem;
 }
@@ -268,27 +284,28 @@
 
 .projectCard {
   padding: 2rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
   border-radius: 12px;
-  border: 2px solid #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .projectCard:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  border-color: #667eea;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(102, 126, 234, 0.4);
 }
 
 .projectCard h3 {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 1rem;
-  color: #1f2937;
+  color: #f0f0ff;
 }
 
 .projectCard p {
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.6;
   margin: 0 0 1.5rem;
 }
@@ -300,8 +317,8 @@
 }
 
 .projectTech span {
-  background: #e5e7eb;
-  color: #374151;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
   padding: 0.375rem 0.75rem;
   border-radius: 16px;
   font-size: 0.75rem;
@@ -313,8 +330,8 @@
   text-align: center;
   padding: 3rem 0;
   margin-top: 4rem;
-  border-top: 2px solid #e5e7eb;
-  color: #6b7280;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .footer p {
@@ -331,76 +348,6 @@
 .fadeIn.visible {
   opacity: 1;
   transform: translateY(0);
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .nav {
-    background: rgba(17, 24, 39, 0.9);
-    border-bottom-color: #374151;
-  }
-
-  .nav a {
-    color: #d1d5db;
-  }
-
-  .nav a:hover {
-    color: #60a5fa;
-  }
-
-  .hero {
-    border-bottom-color: #374151;
-  }
-
-  .title {
-    color: #d1d5db;
-  }
-
-  .tagline {
-    color: #9ca3af;
-  }
-
-  .sectionTitle {
-    color: #f9fafb;
-  }
-
-  .aboutText {
-    color: #d1d5db;
-  }
-
-  .experienceItem,
-  .educationItem,
-  .skillCategory,
-  .projectCard {
-    background: #1f2937;
-    border-color: #374151;
-  }
-
-  .experienceHeader h3,
-  .skillCategory h4,
-  .projectCard h3 {
-    color: #f9fafb;
-  }
-
-  .company,
-  .achievements li,
-  .projectCard p {
-    color: #d1d5db;
-  }
-
-  .period {
-    background: #374151;
-    color: #d1d5db;
-  }
-
-  .projectTech span {
-    background: #374151;
-    color: #d1d5db;
-  }
-
-  .footer {
-    border-top-color: #374151;
-  }
 }
 
 /* Responsive Design */
